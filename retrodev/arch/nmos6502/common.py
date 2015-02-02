@@ -157,4 +157,4 @@ opcodes = {'ADC': {'IMMEDIATE': 0x69,
 instruction_set = opcodes.keys()
 directives = ['ORG', 'TARGET', 'INCLUDE']
 tokens = ['IDENTIFIER', 'STRING', 'NUMBER', 'HEX', 'INSTRUCTION', 'DIRECTIVE',
-          'REGISTER']
+          'REGISTER', 'BINARY']

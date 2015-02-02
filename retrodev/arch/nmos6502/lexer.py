@@ -7,6 +7,7 @@ literals = [',', ':', '#', '(', ')', '=']
 t_ignore = ' \t'
 # Token regex for simple types
 t_HEX = r'\$[0-9a-fA-F]{1,4}'
+t_BINARY = r'%[01]{1,8}'
 t_STRING = r'\".*?[^\\]\"'
 t_NUMBER = r'\-?\d+'
 
@@ -17,8 +18,9 @@ def t_COMMENT(t):
 
 def t_IDENTIFIER(t):
     r'[a-zA-Z_]\w*'
-    if t.value in ['A', 'X', 'Y']:
+    if t.value.upper() in ['A', 'X', 'Y']:
         t.type = 'REGISTER'
+        t.value = t.value.upper()
     elif t.value.upper() in instruction_set:
         t.type = 'INSTRUCTION'
         t.value = t.value.upper()

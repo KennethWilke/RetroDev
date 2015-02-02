@@ -14,7 +14,8 @@ def parse_source_file(source_file, process_state=None):
                          'instructions': [],
                          'included_files': [source_file],
                          'identifiers': {},
-                         'unresolved_identifiers': {}}
+                         'unresolved_identifiers': {},
+                         'unresolved_branches': {}}
     else:
         process_state['included_files'].append(source_file)
     # Read source file
@@ -26,7 +27,6 @@ def parse_source_file(source_file, process_state=None):
 
 
 def process_expressions(expressions, process_state):
-    #print expressions
     for op, value in expressions:
         if op in directives:
             handle_directive(process_state, op, value)
@@ -118,11 +118,14 @@ def handle_instruction(process_state, op, value):
         return
 
     # Get call type and value
-    call_type, value = value
+    if len(value) == 2:
+        call_type, value = value
+    else:
+        call_type, register, addr = value
     # Get opcode value
     try:
         # Branch instructions only have ZERO, but the parser returns ABSOLUTE
-        if op.startswith('B'):
+        if op.startswith('B') and op != 'BIT':
             opcode = opcodes[op]['ZERO']
         else:
             opcode = opcodes[op][call_type]
@@ -131,7 +134,19 @@ def handle_instruction(process_state, op, value):
         sys.exit(1)
 
     # Push value into instructions based on call type
-    if call_type == 'IMMEDIATE':
+    if op.startswith('B') and op != 'BIT' and value[0] == 'IDENTIFIER':
+        process_state['instructions'].append(struct.pack('B', opcode))
+        identifier = value[1]
+        try:
+            value = process_state['identifiers'][identifier] - process_state['cur_addr'] - 2
+        except KeyError:
+            value = 0
+            id_offset = len(process_state['instructions'])
+            if identifier in process_state['unresolved_branches']:
+                process_state['unresolved_branches'][identifier].append(id_offset)
+        process_state['instructions'].append(struct.pack('b', value))
+        process_state['cur_addr'] += 2
+    elif call_type == 'IMMEDIATE':
         process_state['instructions'].append(struct.pack('B', opcode))
         # If string, pack first byte. Otherwise pack numberic value
         if type(value) == str:
@@ -177,38 +192,41 @@ def handle_instruction(process_state, op, value):
             else:
                 process_state['instructions'].append(struct.pack('B', value))
             process_state['cur_addr'] += 2
-    elif expression[1][0] == 'OFFSET':
-        if expression[1][2] > 255:
-            opcode = opcodes[expression[0]][expression[1][0]][expression[1][1]]['ABSOLUTE']
-            instructions.append(struct.pack('B', opcode))
-            val = struct.pack('<H', expression[1][2])
-            instructions.append(val[0])
-            instructions.append(val[1])
-            cur_addr += 3
+    elif call_type == 'OFFSET':
+        if addr > 255:
+            opcode = opcode[register]['ABSOLUTE']
+            process_state['instructions'].append(struct.pack('B', opcode))
+            val = struct.pack('<H', addr)
+            process_state['instructions'].append(val[0])
+            process_state['instructions'].append(val[1])
+            process_state['cur_addr'] += 3
         else:
-            opcode = opcodes[expression[0]][expression[1][0]][expression[1][1]]['ZERO']
-            instructions.append(struct.pack('B', opcode))
-            val = expression[1][2]
-            instructions.append(struct.pack('B', val))
-            cur_addr += 2
-    elif expression[1][0] == 'INDIRECT':
-        if expression[0] == 'JMP':
+            opcode = opcode[register]['ZERO']
+            process_state['instructions'].append(struct.pack('B', opcode))
+            process_state['instructions'].append(struct.pack('B', addr))
+            process_state['cur_addr'] += 2
+    elif call_type == 'INDIRECT':
+        if op == 'JMP':
             opcode = opcodes['JMP']['INDIRECT']
-            instructions.append(struct.pack('B', opcode))
-            val = struct.pack('<H', expression[1][1])
-            instructions.append(val[0])
-            instructions.append(val[1])
-            cur_addr += 3
+            process_state['instructions'].append(struct.pack('B', opcode))
+            val = struct.pack('<H', value)
+            process_state['instructions'].append(val[0])
+            process_state['instructions'].append(val[1])
+            process_state['cur_addr'] += 3
         else:
+            print call_type, value
+            print opcode
             opcode = opcodes[expression[0]][expression[1][0]][expression[1][1]]
-            instructions.append(struct.pack('B', opcode))
+            process_state['instructions'].append(struct.pack('B', opcode))
             val = expression[1][2]
-            instructions.append(struct.pack('B', val))
-            cur_addr += 2
-    elif expression[1][0] == 'REGISTER':
+            process_state['instructions'].append(struct.pack('B', val))
+            process_state['cur_addr'] += 2
+    elif call_type == 'REGISTER':
+        print call_type, value
+        print opcode
         opcode = opcodes[expression[0]][expression[1][0]][expression[1][1]]
-        instructions.append(struct.pack('B', opcode))
-        cur_addr += 1
+        process_state['instructions'].append(struct.pack('B', opcode))
+        process_state['cur_addr'] += 1
     else:
         print expression
         print 'UNHANDLED INSTRUCTION ARGUMENT TYPE'

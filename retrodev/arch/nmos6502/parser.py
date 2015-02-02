@@ -58,6 +58,10 @@ def p_argument_hex(p):
     'argument : HEX'
     p[0] = int(p[1][1:], 16)
 
+def p_argument_binary(p):
+    'argument : BINARY'
+    p[0] = int(p[1][1:], 2)
+
 def p_argument_identifier(p):
     'argument : IDENTIFIER'
     p[0] = ('IDENTIFIER', p[1])
