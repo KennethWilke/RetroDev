@@ -21,7 +21,7 @@ def parse_source_file(source_file, process_state=None):
     # Read source file
     with open(source_file) as src_file:
         source_text = src_file.read()
-    expressions = parser.parse(source_text, lexer=lexer)
+    expressions = [x for x in parser.parse(source_text, lexer=lexer) if x]
     process_expressions(expressions, process_state)
     return process_state
 
@@ -33,8 +33,7 @@ def process_expressions(expressions, process_state):
         elif op == 'LABEL':
             # Handle label referencing
             if value in process_state['identifiers']:
-                print 'ERROR: Label "{0}" defined multiple '\
-                      'times'.format(expression[1])
+                print 'ERROR: Label "{0}" defined multiple times'.format(value)
                 sys.exit(1)
             else:
                 process_state['identifiers'][value] = process_state['cur_addr']
@@ -50,7 +49,7 @@ def process_expressions(expressions, process_state):
         elif op in instruction_set:
             handle_instruction(process_state, op, value)
         else:
-            print "{0} NOT YET IMPLEMENTED".format(expression)
+            print "Unknown directive: {0}".format(op)
             sys.exit(1)
 
     # Second pass to resolve unresolved identifiers
@@ -62,8 +61,8 @@ def process_expressions(expressions, process_state):
             sys.exit(1)
         val = struct.pack('<H', identifiers[identifier])
         ins_offset = int(unresolved_identifiers[identifier])
-        instructions[ins_offset] = val[0]
-        instructions[ins_offset + 1] = val[1]
+        process_state['instructions'][ins_offset] = val[0]
+        process_state['instructions'][ins_offset + 1] = val[1]
 
 
 def handle_directive(process_state, directive, value):
@@ -100,6 +99,25 @@ def handle_directive(process_state, directive, value):
         parse_source_file(value, process_state)
         # Restore unresolved identifiers
         process_state['unresolved_identifiers'] = unresolved_locally
+    elif directive == 'NES_CHRFILE':
+        if 'nes_chrfiles' in process_state:
+            process_state['nes_chrfiles'].append(value)
+        else:
+            process_state['nes_chrfiles'] = [value]
+    elif directive == 'NES_NMI':
+        process_state['nes_nmi'] = value
+    elif directive == 'NES_RESET':
+        process_state['nes_reset'] = value
+    elif directive == 'NES_IRQ':
+        process_state['nes_irq'] = value
+    elif directive == 'BYTES':
+        while value:
+            # Pop byte off value
+            byte = value[:2]
+            value = value[2:]
+            byteval = struct.pack('B', int(byte, 16))
+            process_state['instructions'].append(byteval)
+            process_state['cur_addr'] += 1
     else:
         print 'Unhandled directive: {0}'.format(directive)
         sys.exit(1)
@@ -134,7 +152,8 @@ def handle_instruction(process_state, op, value):
         sys.exit(1)
 
     # Push value into instructions based on call type
-    if op.startswith('B') and op != 'BIT' and value[0] == 'IDENTIFIER':
+    if op.startswith('B') and op != 'BIT' and type(value) == tuple \
+      and value[0] == 'IDENTIFIER':
         process_state['instructions'].append(struct.pack('B', opcode))
         identifier = value[1]
         try:
@@ -158,8 +177,7 @@ def handle_instruction(process_state, op, value):
         # Immediate calls are 2 bytes long
         process_state['cur_addr'] += 2
     elif call_type == 'ABSOLUTE':
-        if type(value) == tuple and\
-          value[0] == 'IDENTIFIER':
+        if type(value) == tuple:
             process_state['instructions'].append(struct.pack('B', opcode))
             identifier = value[1]
             try:
@@ -196,10 +214,24 @@ def handle_instruction(process_state, op, value):
         if addr > 255:
             opcode = opcode[register]['ABSOLUTE']
             process_state['instructions'].append(struct.pack('B', opcode))
-            val = struct.pack('<H', addr)
+            process_state['cur_addr'] += 1
+            if type(addr) == tuple:
+                identifier = addr[1]
+                try:
+                    value = int(process_state['identifiers'][identifier])
+                    if value < 0:
+                        packed_value = struct.pack('<h', value)
+                    else:
+                        packed_value = struct.pack('<H', value)
+                except KeyError:
+                    val = ['\x00', '\x00']
+                    id_offset = len(process_state['instructions'])
+                    process_state['unresolved_identifiers'][identifier] = id_offset
+            else:
+                val = struct.pack('<H', addr)
             process_state['instructions'].append(val[0])
             process_state['instructions'].append(val[1])
-            process_state['cur_addr'] += 3
+            process_state['cur_addr'] += 2
         else:
             opcode = opcode[register]['ZERO']
             process_state['instructions'].append(struct.pack('B', opcode))

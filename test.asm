@@ -1,4 +1,5 @@
 .target "appleii"
+printc = $FDF0
 
 .org $801
 ; Prints all characters
@@ -13,6 +14,6 @@ main_loop:
     LDY #0
 inner_loop:
     INY
-    BNE -3
+    BNE inner_loop
     JSR printc
     JMP main_loop

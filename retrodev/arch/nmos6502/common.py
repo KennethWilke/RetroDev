@@ -155,6 +155,7 @@ opcodes = {'ADC': {'IMMEDIATE': 0x69,
                     'ABSOLUTE': 0x8C,
                     'OFFSET': {'X': {'ZERO': 0x94}}}}
 instruction_set = opcodes.keys()
-directives = ['ORG', 'TARGET', 'INCLUDE']
+directives = ['ORG', 'TARGET', 'INCLUDE', 'NES_RESET', 'NES_IRQ', 'NES_NMI',
+              'NES_CHRFILE', 'BYTES']
 tokens = ['IDENTIFIER', 'STRING', 'NUMBER', 'HEX', 'INSTRUCTION', 'DIRECTIVE',
-          'REGISTER', 'BINARY']
+          'REGISTER', 'BINARY', 'NEWLINE']

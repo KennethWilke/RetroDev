@@ -34,8 +34,9 @@ def t_DIRECTIVE(t):
 
 # Track line numbers
 def t_NEWLINE(t):
-    r'\n+'
-    t.lexer.lineno += len(t.value)
+    r'\n'
+    t.lexer.lineno += 1
+    return t
 
 def t_error(t):
     print "Parsing error on: {0}".format(t.value[0])

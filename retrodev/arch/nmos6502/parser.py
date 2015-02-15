@@ -11,47 +11,51 @@ def p_expressionlist_expression(p):
     p[0] = [p[1]]
 
 def p_expression_directive(p):
-    'expression : DIRECTIVE argument'
+    'expression : DIRECTIVE argument NEWLINE'
     p[0] = (p[1], p[2])
+
+def p_expression_empty(p):
+    'expression : NEWLINE'
+    pass
 
 def p_expression_label(p):
     "expression : IDENTIFIER ':'"
     p[0] = ('LABEL', p[1])
 
 def p_assignment_set(p):
-    "expression : IDENTIFIER '=' argument"
+    "expression : IDENTIFIER '=' argument NEWLINE"
     p[0] = ('ASSIGNMENT', (p[1], p[3]))
 
 def p_expression_instruction_noargs(p):
-    'expression : INSTRUCTION'
+    'expression : INSTRUCTION NEWLINE'
     p[0] = (p[1], ())
 
 def p_expression_instruction_immediate(p):
-    "expression : INSTRUCTION '#' argument"
+    "expression : INSTRUCTION '#' argument NEWLINE"
     p[0] = (p[1], ('IMMEDIATE', p[3]))
 
 def p_expression_instruction_absolute(p):
-    'expression : INSTRUCTION argument'
+    'expression : INSTRUCTION argument NEWLINE'
     p[0] = (p[1], ('ABSOLUTE', p[2]))
 
 def p_expression_instruction_indirect(p):
-    "expression : INSTRUCTION '(' argument ')'"
+    "expression : INSTRUCTION '(' argument ')' NEWLINE"
     p[0] = (p[1], ('INDIRECT', p[3]))
 
 def p_expression_instruction_register(p):
-    'expression : INSTRUCTION REGISTER'
+    'expression : INSTRUCTION REGISTER NEWLINE'
     p[0] = (p[1], ('REGISTER', p[2]))
 
 def p_expression_instruction_offset(p):
-    "expression : INSTRUCTION argument ',' REGISTER"
+    "expression : INSTRUCTION argument ',' REGISTER NEWLINE"
     p[0] = (p[1], ('OFFSET', p[4], p[2]))
 
 def p_expression_instruction_indirect_offset(p):
-    "expression : INSTRUCTION '(' argument ',' REGISTER ')' "
+    "expression : INSTRUCTION '(' argument ',' REGISTER ')' NEWLINE"
     p[0] = (p[1], ('INDIRECT', p[5], p[3]))
 
 def p_expression_instruction_indirect_offset2(p):
-    "expression : INSTRUCTION '(' argument ')' ',' REGISTER "
+    "expression : INSTRUCTION '(' argument ')' ',' REGISTER NEWLINE"
     p[0] = (p[1], ('INDIRECT', p[6], p[3]))
 
 def p_argument_hex(p):
