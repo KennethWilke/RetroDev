@@ -1,5 +1,5 @@
 .target "nes"
-.nes_chrfile "mario.chr"
+.nes_chrfile "test.chr"
 .nes_nmi NMI
 .nes_reset RESET
 .nes_irq 0
@@ -58,11 +58,12 @@ LoadPalettesLoop:
 
 
 
-  LDA #$80
+  LDA #"H"
   STA $0200        ; put sprite 0 in center ($80) of screen vert
   STA $0203        ; put sprite 0 in center ($80) of screen horiz
-  LDA #$00
+  LDA #$48
   STA $0201        ; tile number = 0
+  LDA #$00
   STA $0202        ; color = 0, no flipping
 
   LDA #%10000000   ; enable NMI, sprites from Pattern Table 0

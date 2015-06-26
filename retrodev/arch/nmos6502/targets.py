@@ -73,5 +73,28 @@ def write_ines(process_state, outfile_name):
                     chrfile_size = chrfile_size + 1
 
 
+def write_2600(process_state, outfile_name):
+    with open(outfile_name, 'w') as outfile:
+        size = 0
+        for byte in process_state['instructions']:
+            outfile.write(byte)
+            size += 1
+        while size < 4090:
+            outfile.write('\xFF')
+            size += 1
+
+        for vector in ['atari_nmi', 'atari_reset', 'atari_irq']:
+            if vector in process_state:
+                if type(process_state[vector]) == tuple:
+                    ident = process_state[vector][1]
+                    addr = process_state['identifiers'][ident]
+                else:
+                    addr = process_state[vector]
+            else:
+                addr = 0xF000
+            outfile.write(struct.pack('<H', addr))
+
+
 targets = {'appleii': write_appleii_dsk,
-           'nes': write_ines}
+           'nes': write_ines,
+           'atari_2600': write_2600}

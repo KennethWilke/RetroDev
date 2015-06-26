@@ -104,12 +104,9 @@ def handle_directive(process_state, directive, value):
             process_state['nes_chrfiles'].append(value)
         else:
             process_state['nes_chrfiles'] = [value]
-    elif directive == 'NES_NMI':
-        process_state['nes_nmi'] = value
-    elif directive == 'NES_RESET':
-        process_state['nes_reset'] = value
-    elif directive == 'NES_IRQ':
-        process_state['nes_irq'] = value
+    elif directive in ['NES_NMI', 'NES_RESET', 'NES_IRQ', 'ATARI_NMI',
+                       'ATARI_RESET', 'ATARI_IRQ']:
+        process_state[directive.lower()] = value
     elif directive == 'BYTES':
         while value:
             # Pop byte off value
@@ -246,16 +243,12 @@ def handle_instruction(process_state, op, value):
             process_state['instructions'].append(val[1])
             process_state['cur_addr'] += 3
         else:
-            print call_type, value
-            print opcode
             opcode = opcodes[expression[0]][expression[1][0]][expression[1][1]]
             process_state['instructions'].append(struct.pack('B', opcode))
             val = expression[1][2]
             process_state['instructions'].append(struct.pack('B', val))
             process_state['cur_addr'] += 2
     elif call_type == 'REGISTER':
-        print call_type, value
-        print opcode
         opcode = opcodes[expression[0]][expression[1][0]][expression[1][1]]
         process_state['instructions'].append(struct.pack('B', opcode))
         process_state['cur_addr'] += 1
